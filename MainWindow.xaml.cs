@@ -300,6 +300,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         public void Gesture_MouseMove(object sender, EventArgs e)
         {
             HandMouseState = HandMouseStates.CURSOR;
+            MouseMoveData.resetOldHand = true;
         }
 
         public void Gesture_MouseMoveFinish(object sender, EventArgs e)
@@ -437,6 +438,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
                             // convert the joint points to depth (display) space
                             Dictionary<JointType, Point> jointPoints = new Dictionary<JointType, Point>();
+                            Dictionary<JointType, float> jointZs = new Dictionary<JointType, float>();
 
                             foreach (JointType jointType in joints.Keys)
                             {
@@ -450,6 +452,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
                                 DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
                                 jointPoints[jointType] = new Point(depthSpacePoint.X, depthSpacePoint.Y);
+                                jointZs[jointType] = position.Z;
                             }
 
                             this.DrawBody(joints, jointPoints, dc, drawPen);
@@ -463,7 +466,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             mouseMoveGesture.Update(body);
                             mouseMoveGestureFinish.Update(body);
 
-                            handMouseBehavior(body, jointPoints[JointType.HandLeft], jointPoints[JointType.HandRight]);
+                            handMouseBehavior(body, jointPoints[JointType.HandLeft], jointPoints[JointType.HandRight],jointZs[JointType.HandLeft],jointZs[JointType.HandRight]);
                         }
                     }
 
@@ -473,7 +476,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             }
         }
 
-        private void handMouseBehavior(Body body, Point leftHand, Point rightHand)
+        private void handMouseBehavior(Body body, Point leftHand, Point rightHand,float leftZ, float rightZ)
         {
             switch (HandMouseState)
             {
@@ -486,35 +489,48 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                     break;
                 case HandMouseStates.CURSOR:
                     Point mousePoint;
+                    float zCoordinate;
                     double armLength = calculateArmLength(body);
                     if (MouseMoveData.dragHand == JointType.HandLeft)
                     {
                         mousePoint = leftHand;
+                        zCoordinate = leftZ;
                     }
                     else
                     {
                         mousePoint = rightHand;
+                        zCoordinate = rightZ;
                     }
 
                     if (MouseMoveData.resetOldHand)
                     {
                         MouseMoveData.lastHandPoint = mousePoint;
+                        MouseMoveData.lastHandZ = zCoordinate;
                         MouseMoveData.resetOldHand = false;
                     }
                     double dx = mousePoint.X - MouseMoveData.lastHandPoint.X;
                     double dy = mousePoint.Y - MouseMoveData.lastHandPoint.Y;
+                    double dz = zCoordinate - MouseMoveData.lastHandZ;
                     MouseMoveData.lastHandPoint = mousePoint;
+                    MouseMoveData.lastHandZ = zCoordinate;
 
-                    double screenWidth = System.Windows.SystemParameters.PrimaryScreenWidth;
-                    double screenHeight = System.Windows.SystemParameters.PrimaryScreenHeight;
+                    if (dz > armLength / 15)
+                    {
+                        Win32.mouse_event((int)Win32.MouseEventFlags.LeftDown,0,0,0,0);
+                    }
+                    else
+                    {
+                        double screenWidth = System.Windows.SystemParameters.PrimaryScreenWidth;
+                        double screenHeight = System.Windows.SystemParameters.PrimaryScreenHeight;
 
-                    double multiplier = Math.Max(screenHeight / armLength, screenWidth / armLength) / 500;
-                    dx *= multiplier;
-                    dy *= multiplier;
+                        double multiplier = Math.Max(screenHeight / armLength, screenWidth / armLength) / 500;
+                        dx *= multiplier;
+                        dy *= multiplier;
 
-                    Win32.POINT lpPoint;
-                    Win32.GetCursorPos(out lpPoint);
-                    Win32.SetCursorPos(lpPoint.X + (int)dx, lpPoint.Y + (int)dy);
+                        Win32.POINT lpPoint;
+                        Win32.GetCursorPos(out lpPoint);
+                        Win32.SetCursorPos(lpPoint.X + (int)dx, lpPoint.Y + (int)dy);
+                    }
                     break;
                 case HandMouseStates.WINDOW_DRAG:
                     handleWindowDragging(body, leftHand, rightHand);
