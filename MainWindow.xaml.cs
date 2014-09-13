@@ -131,91 +131,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
         private IntPtr window;
 
-        [DllImport("user32.dll")]
-        public static extern IntPtr FindWindow(string lpClassName, String lpWindowName);
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        static extern uint RegisterWindowMessage(string lpString);
-        [DllImport("user32.dll")]
-        static extern IntPtr GetForegroundWindow();
-
-        [DllImport("user32.dll")]
-        static extern int ScrollWindowEx(IntPtr hWnd, int dx, int dy, IntPtr prcScroll,
-           IntPtr prcClip, IntPtr hrgnUpdate, IntPtr prcUpdate, uint flags);
         
-        [DllImport("user32.dll")]
-        static extern int ShowWindow(IntPtr hWnd, int nCmdShow);
-        private const int WM_SCROLL = 276; // Horizontal scroll
-        private const int WM_VSCROLL = 277; // Vertical scroll
-        private const int SB_LINEUP = 0; // Scrolls one line up
-        private const int SB_LINELEFT = 0;// Scrolls one cell left
-        private const int SB_LINEDOWN = 1; // Scrolls one line down
-        private const int SB_LINERIGHT = 1;// Scrolls one cell right
-        private const int SB_PAGEUP = 2; // Scrolls one page up
-        private const int SB_PAGELEFT = 2;// Scrolls one page left
-        private const int SB_PAGEDOWN = 3; // Scrolls one page down
-        private const int SB_PAGERIGTH = 3; // Scrolls one page right
-        private const int SB_PAGETOP = 6; // Scrolls to the upper left
-        private const int SB_LEFT = 6; // Scrolls to the left
-        private const int SB_PAGEBOTTOM = 7; // Scrolls to the upper right
-        private const int SB_RIGHT = 7; // Scrolls to the right
-        private const int SB_ENDSCROLL = 8; // Ends scroll
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
-
-        [Flags]
-        public enum SetWindowPosFlags : uint
-        {
-            SWP_ASYNCWINDOWPOS = 0x4000,
-            SWP_DEFERERASE = 0x2000,
-            SWP_DRAWFRAME = 0x0020,
-            SWP_FRAMECHANGED = 0x0020,
-            SWP_HIDEWINDOW = 0x0080,
-            SWP_NOACTIVATE = 0x0010,
-            SWP_NOCOPYBITS = 0x0100,
-            SWP_NOMOVE = 0x0002,
-            SWP_NOOWNERZORDER = 0x0200,
-            SWP_NOREDRAW = 0x0008,
-            SWP_NOREPOSITION = 0x0200,
-            SWP_NOSENDCHANGING = 0x0400,
-            SWP_NOSIZE = 0x0001,
-            SWP_NOZORDER = 0x0004,
-            SWP_SHOWWINDOW = 0x0040,
-        }
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, SetWindowPosFlags uFlags);
-        
-        [DllImport("User32.Dll")]
-        public static extern long SetCursorPos(int x, int y);
-
-        [DllImport("user32.dll")]
-        public static extern bool GetCursorPos(out POINT lpPoint);
-
-        struct RECT
-        {
-            public int left;
-            public int top;
-            public int right;
-            public int bottom;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct POINT
-        {
-            public int X;
-            public int Y;
-
-            public static implicit operator Point(POINT point)
-            {
-                return new Point(point.X, point.Y);
-            }
-        }
 
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
@@ -449,8 +365,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             this.DrawHand(body.HandLeftState, jointPoints[JointType.HandLeft], dc);
                             this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
 
-                            ProcessHandGestures(body.HandLeftState, jointPoints[JointType.HandLeft],
-                                body.HandRightState, jointPoints[JointType.HandRight]);
+                            ProcessHandGestures(body, body.Joints[JointType.HandLeft], body.Joints[JointType.HandRight], body.Joints[JointType.Head]);
                         }
                     }
 
@@ -460,33 +375,29 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             }
         }
 
-        private Point lastRightPoint;
-        private void ProcessHandGestures(HandState leftState, Point leftPoint, HandState rightHand, Point rightPoint)
+        private void ProcessHandGestures(Body body, Joint left, Joint right, Joint head)
         {
             if (window == null || window == IntPtr.Zero)
             {
-                window = GetForegroundWindow();
+                window = Win32.GetForegroundWindow();
             }
-            if (lastRightPoint == null)
-            {
-                lastRightPoint = rightPoint;
-            }
+            left.TrackingState.
 
             if (leftState == HandState.Closed)
             {
                 int dx = (int)(rightPoint.X - lastRightPoint.X);
                 int dy = (int)(rightPoint.Y - lastRightPoint.Y);
                 Console.WriteLine(dx + ", " + dy);
-                POINT lpPoint;
-                GetCursorPos(out lpPoint);
-                SetCursorPos(lpPoint.X + dx, lpPoint.Y + dy);
+                Win32.POINT lpPoint;
+                Win32.GetCursorPos(out lpPoint);
+                Win32.SetCursorPos(lpPoint.X + dx, lpPoint.Y + dy);
+
                 /*
                 RECT current;
                 GetWindowRect(window, out current);
                 SetWindowPos(window, new IntPtr(0), current.left + dx, current.top + dy, -1, -1, SetWindowPosFlags.SWP_NOSIZE);
                  */
             }
-            lastRightPoint = rightPoint;
         }
 
         /// <summary>
