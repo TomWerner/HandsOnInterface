@@ -381,16 +381,15 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             {
                 window = Win32.GetForegroundWindow();
             }
-            left.TrackingState.
 
-            if (leftState == HandState.Closed)
+            if (body.HandLeftState == HandState.Closed)
             {
-                int dx = (int)(rightPoint.X - lastRightPoint.X);
-                int dy = (int)(rightPoint.Y - lastRightPoint.Y);
-                Console.WriteLine(dx + ", " + dy);
-                Win32.POINT lpPoint;
-                Win32.GetCursorPos(out lpPoint);
-                Win32.SetCursorPos(lpPoint.X + dx, lpPoint.Y + dy);
+                //int dx = (int)(rightPoint.X - lastRightPoint.X);
+                //int dy = (int)(rightPoint.Y - lastRightPoint.Y);
+                //Console.WriteLine(dx + ", " + dy);
+                //Win32.POINT lpPoint;
+                //Win32.GetCursorPos(out lpPoint);
+                //Win32.SetCursorPos(lpPoint.X + dx, lpPoint.Y + dy);
 
                 /*
                 RECT current;
