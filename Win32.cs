@@ -10,21 +10,21 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 {
     public class Win32
     {
-        public static const int WM_SCROLL = 276; // Horizontal scroll
-        public static const int WM_VSCROLL = 277; // Vertical scroll
-        public static const int SB_LINEUP = 0; // Scrolls one line up
-        public static const int SB_LINELEFT = 0;// Scrolls one cell left
-        public static const int SB_LINEDOWN = 1; // Scrolls one line down
-        public static const int SB_LINERIGHT = 1;// Scrolls one cell right
-        public static const int SB_PAGEUP = 2; // Scrolls one page up
-        public static const int SB_PAGELEFT = 2;// Scrolls one page left
-        public static const int SB_PAGEDOWN = 3; // Scrolls one page down
-        public static const int SB_PAGERIGTH = 3; // Scrolls one page right
-        public static const int SB_PAGETOP = 6; // Scrolls to the upper left
-        public static const int SB_LEFT = 6; // Scrolls to the left
-        public static const int SB_PAGEBOTTOM = 7; // Scrolls to the upper right
-        public static const int SB_RIGHT = 7; // Scrolls to the right
-        public static const int SB_ENDSCROLL = 8; // Ends scroll
+        public const int WM_SCROLL = 276; // Horizontal scroll
+        public const int WM_VSCROLL = 277; // Vertical scroll
+        public const int SB_LINEUP = 0; // Scrolls one line up
+        public const int SB_LINELEFT = 0;// Scrolls one cell left
+        public const int SB_LINEDOWN = 1; // Scrolls one line down
+        public const int SB_LINERIGHT = 1;// Scrolls one cell right
+        public const int SB_PAGEUP = 2; // Scrolls one page up
+        public const int SB_PAGELEFT = 2;// Scrolls one page left
+        public const int SB_PAGEDOWN = 3; // Scrolls one page down
+        public const int SB_PAGERIGTH = 3; // Scrolls one page right
+        public const int SB_PAGETOP = 6; // Scrolls to the upper left
+        public const int SB_LEFT = 6; // Scrolls to the left
+        public const int SB_PAGEBOTTOM = 7; // Scrolls to the upper right
+        public const int SB_RIGHT = 7; // Scrolls to the right
+        public const int SB_ENDSCROLL = 8; // Ends scroll
 
         [Flags]
         public enum SetWindowPosFlags : uint
@@ -46,6 +46,9 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             SWP_SHOWWINDOW = 0x0040,
         }
 
+        public const int SW_MAXIMIZE = 3;
+        public const int SW_MINIMIZE = 6;
+
         [Flags]
         public enum MouseEventFlags
         {
@@ -58,7 +61,8 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             RightDown = 0x00000008,
             RightUp = 0x00000010
         }
-        struct RECT
+        
+        public struct RECT
         {
             public int left;
             public int top;
@@ -103,7 +107,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, SetWindowPosFlags uFlags);
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, SetWindowPosFlags uFlags);
 
         [DllImport("User32.Dll")]
         public static extern long SetCursorPos(int x, int y);

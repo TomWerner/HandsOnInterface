@@ -18,6 +18,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
     using Microsoft.Kinect;
     using System.Runtime.InteropServices;
     using System.Windows.Shapes;
+    using Microsoft.Samples.Kinect.BodyBasics.Gestures;
 
     /// <summary>
     /// Interaction logic for MainWindow
@@ -130,7 +131,15 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         private string statusText = null;
 
         private IntPtr window;
+        private GestureListener waveGesture;
 
+        private enum HandMouseStates
+        {
+            NONE,
+            CURSOR,
+            WINDOW_DRAG
+        }
+        private HandMouseStates HandMouseState = HandMouseStates.NONE;
         
 
         /// <summary>
@@ -222,12 +231,95 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             // initialize the components (controls) of the window
             this.InitializeComponent();
+
+
+            WaveSegment1 waveRightSegment1 = new WaveSegment1();
+            WaveSegment2 waveRightSegment2 = new WaveSegment2();
+            IGestureSegment[] wave = new IGestureSegment[]
+            {
+                waveRightSegment1,
+                waveRightSegment2,
+                waveRightSegment1,
+                waveRightSegment2,
+                waveRightSegment1,
+                waveRightSegment2
+            };
+
+            waveGesture = new GestureListener(wave);
+            waveGesture.GestureRecognized += Gesture_GestureRecognized;
+
+            WindowDragStart dragSeg1 = new WindowDragStart();
+            WindowDragMove dragSeg2 = new WindowDragMove();
+            MouseMoveStart mouseSeg1 = new MouseMoveStart();
+            MouseMove mouseSeg2 = new MouseMove();
+            FinishedGesture finished = new FinishedGesture();
+            IGestureSegment[] windowDrag = new IGestureSegment[]
+            {
+                dragSeg1,
+                dragSeg2
+            };
+            IGestureSegment[] mouseMove = new IGestureSegment[]
+            {
+                mouseSeg1,
+                mouseSeg2
+            };
+            IGestureSegment[] finishedSequence = new IGestureSegment[]
+            {
+                finished
+            };
+
+            windowDragGesture = new GestureListener(windowDrag);
+            windowDragGesture.GestureRecognized += Gesture_DragMove;
+
+            windowDragGestureFinish = new GestureListener(finishedSequence);
+            windowDragGestureFinish.GestureRecognized += Gesture_DragFinish;
+
+            mouseMoveGesture = new GestureListener(mouseMove);
+            mouseMoveGesture.GestureRecognized += Gesture_MouseMove;
+
+            mouseMoveGestureFinish = new GestureListener(finishedSequence);
+            mouseMoveGestureFinish.GestureRecognized += Gesture_MouseMoveFinish;
+        }
+
+        public void Gesture_DragMove(object sender, EventArgs e)
+        {
+            HandMouseState = HandMouseStates.WINDOW_DRAG;
+            WindowDragData.resetOldHand = true;
+            window = Win32.GetForegroundWindow();
+        }
+
+        public void Gesture_DragFinish(object sender, EventArgs e)
+        {
+            if (HandMouseState == HandMouseStates.WINDOW_DRAG)
+            {
+                HandMouseState = HandMouseStates.NONE;
+                WindowDragData.checkForFling = true;
+            }
+        }
+
+        public void Gesture_MouseMove(object sender, EventArgs e)
+        {
+            HandMouseState = HandMouseStates.CURSOR;
+        }
+
+        public void Gesture_MouseMoveFinish(object sender, EventArgs e)
+        {
+            HandMouseState = HandMouseStates.NONE;
+        }
+
+        public void Gesture_GestureRecognized(object sender, EventArgs e)
+        {
+            Console.WriteLine("You just waved!");
         }
 
         /// <summary>
         /// INotifyPropertyChangedPropertyChanged event to allow window controls to bind to changeable data
         /// </summary>
         public event PropertyChangedEventHandler PropertyChanged;
+        private GestureListener windowDragGesture;
+        private GestureListener windowDragGestureFinish;
+        private GestureListener mouseMoveGesture;
+        private GestureListener mouseMoveGestureFinish;
 
         /// <summary>
         /// Gets the bitmap to display
@@ -365,7 +457,13 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             this.DrawHand(body.HandLeftState, jointPoints[JointType.HandLeft], dc);
                             this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
 
-                            ProcessHandGestures(body, body.Joints[JointType.HandLeft], body.Joints[JointType.HandRight], body.Joints[JointType.Head]);
+                            waveGesture.Update(body);
+                            windowDragGesture.Update(body);
+                            windowDragGestureFinish.Update(body);
+                            mouseMoveGesture.Update(body);
+                            mouseMoveGestureFinish.Update(body);
+
+                            handMouseBehavior(body, jointPoints[JointType.HandLeft], jointPoints[JointType.HandRight]);
                         }
                     }
 
@@ -375,13 +473,162 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             }
         }
 
-        private void ProcessHandGestures(Body body, Joint left, Joint right, Joint head)
+        private void handMouseBehavior(Body body, Point leftHand, Point rightHand)
         {
-            if (window == null || window == IntPtr.Zero)
+            switch (HandMouseState)
             {
-                window = Win32.GetForegroundWindow();
+                case HandMouseStates.NONE:
+                    if (WindowDragData.checkForFling)
+                    {
+                        checkForFling(body, leftHand, rightHand);
+                    }
+
+                    break;
+                case HandMouseStates.CURSOR:
+                    Point mousePoint;
+                    double armLength = calculateArmLength(body);
+                    if (MouseMoveData.dragHand == JointType.HandLeft)
+                    {
+                        mousePoint = leftHand;
+                    }
+                    else
+                    {
+                        mousePoint = rightHand;
+                    }
+
+                    if (MouseMoveData.resetOldHand)
+                    {
+                        MouseMoveData.lastHandPoint = mousePoint;
+                        MouseMoveData.resetOldHand = false;
+                    }
+                    double dx = mousePoint.X - MouseMoveData.lastHandPoint.X;
+                    double dy = mousePoint.Y - MouseMoveData.lastHandPoint.Y;
+                    MouseMoveData.lastHandPoint = mousePoint;
+
+                    double screenWidth = System.Windows.SystemParameters.PrimaryScreenWidth;
+                    double screenHeight = System.Windows.SystemParameters.PrimaryScreenHeight;
+
+                    double multiplier = Math.Max(screenHeight / armLength, screenWidth / armLength) / 500;
+                    dx *= multiplier;
+                    dy *= multiplier;
+
+                    Win32.POINT lpPoint;
+                    Win32.GetCursorPos(out lpPoint);
+                    Win32.SetCursorPos(lpPoint.X + (int)dx, lpPoint.Y + (int)dy);
+                    break;
+                case HandMouseStates.WINDOW_DRAG:
+                    handleWindowDragging(body, leftHand, rightHand);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private void handleWindowDragging(Body body, Point leftHand, Point rightHand)
+        {
+            Point mousePoint;
+            double armLength = calculateArmLength(body);
+            if (WindowDragData.dragHand == JointType.HandLeft)
+            {
+                mousePoint = leftHand;
+            }
+            else
+            {
+                mousePoint = rightHand;
             }
 
+            if (WindowDragData.resetOldHand)
+            {
+                WindowDragData.lastHandPoint = mousePoint;
+                WindowDragData.resetOldHand = false;
+            }
+            double dx = mousePoint.X - WindowDragData.lastHandPoint.X;
+            double dy = mousePoint.Y - WindowDragData.lastHandPoint.Y;
+            WindowDragData.lastHandPoint = mousePoint;
+
+            double screenWidth = System.Windows.SystemParameters.PrimaryScreenWidth;
+            double screenHeight = System.Windows.SystemParameters.PrimaryScreenHeight;
+
+            double multiplier = Math.Max(screenHeight / armLength, screenWidth / armLength) / 500;
+            dx *= multiplier;
+            dy *= multiplier;
+
+            Win32.RECT current;
+            Win32.GetWindowRect(window, out current);
+            Win32.SetWindowPos(window, new IntPtr(0), current.left + (int)dx, current.top + (int)dy, -1, -1, Win32.SetWindowPosFlags.SWP_NOSIZE);
+
+                    
+
+
+        }
+
+        private void checkForFling(Body body, Point leftHand, Point rightHand)
+        {
+            WindowDragData.checkForFling = false;
+            Point mousePoint;
+            double armLength = calculateArmLength(body);
+            if (WindowDragData.dragHand == JointType.HandLeft)
+            {
+                mousePoint = leftHand;
+            }
+            else
+            {
+                mousePoint = rightHand;
+            }
+            double dx2 = mousePoint.X - WindowDragData.lastHandPoint.X;
+            double dy2 = mousePoint.Y - WindowDragData.lastHandPoint.Y;
+            Rect workArea = System.Windows.SystemParameters.WorkArea;
+            double totalChange = Math.Sqrt(Math.Pow(dx2, 2) + Math.Pow(dy2, 2));
+            if (totalChange / armLength > 10)
+            {
+                Console.WriteLine("FLING" + (dx2 / totalChange));
+                if (Math.Abs(dx2 / totalChange) > .5)
+                {
+                    if (dx2 > 0)
+                    {
+                        Win32.SetWindowPos(window, new IntPtr(0), (int)workArea.Width / 2, 0, (int)workArea.Width / 2, (int)workArea.Height, Win32.SetWindowPosFlags.SWP_SHOWWINDOW);
+                    }
+                    else
+                    {
+                        Win32.SetWindowPos(window, new IntPtr(0), 0, 0, (int)workArea.Width / 2, (int)workArea.Height, Win32.SetWindowPosFlags.SWP_SHOWWINDOW);
+                    }
+                }
+                else
+                {
+                    if (dy2 < 0)
+                    {
+                        Win32.ShowWindow(window, Win32.SW_MAXIMIZE);
+                    }
+                    else
+                    {
+                        Win32.ShowWindow(window, Win32.SW_MINIMIZE);
+                    }
+                }
+            }
+        }
+
+        private double calculateArmLength(Body body)
+        {
+            double armLength;
+            if (WindowDragData.dragHand == JointType.HandLeft)
+            {
+                armLength = Math.Sqrt(Math.Pow(body.Joints[JointType.HandLeft].Position.X - body.Joints[JointType.ElbowLeft].Position.X, 2) +
+                                       Math.Pow(body.Joints[JointType.HandLeft].Position.Y - body.Joints[JointType.ElbowLeft].Position.Y, 2) +
+                                       Math.Pow(body.Joints[JointType.HandLeft].Position.Z - body.Joints[JointType.ElbowLeft].Position.Z, 2));
+            }
+            else
+            {
+                armLength = Math.Sqrt(Math.Pow(body.Joints[JointType.HandRight].Position.X - body.Joints[JointType.ElbowRight].Position.X, 2) +
+                                       Math.Pow(body.Joints[JointType.HandRight].Position.Y - body.Joints[JointType.ElbowRight].Position.Y, 2) +
+                                       Math.Pow(body.Joints[JointType.HandRight].Position.Z - body.Joints[JointType.ElbowRight].Position.Z, 2));
+            }
+
+            return armLength;
+        }
+
+
+        private void ProcessHandGestures(Body body, Joint left, Joint right, Joint head)
+        {
             if (body.HandLeftState == HandState.Closed)
             {
                 //int dx = (int)(rightPoint.X - lastRightPoint.X);
