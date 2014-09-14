@@ -269,7 +269,7 @@ namespace Microsoft.Samples.Kinect.HackISUName
                 GrammarBuilder snap = new GrammarBuilder { Culture = ri.Culture };
                 // Any window
                 snap.Append(new Choices("snap"));
-                snap.Append(new Choices("Chrome", "Media Player", "Visual Studio", "Github", "Eclipse", "Word", "Notepad"));
+                snap.Append(new Choices("Genie", "Chrome", "Media Player", "Visual Studio", "Github", "Eclipse", "Word", "Notepad"));
                 snap.Append(new Choices("left", "right", "down", "up"));
                 var g = new Grammar(snap);
                 this.speechEngine.LoadGrammar(g);
@@ -285,14 +285,14 @@ namespace Microsoft.Samples.Kinect.HackISUName
 
                 GrammarBuilder grab1 = new GrammarBuilder { Culture = ri.Culture };
                 grab1.Append(new Choices("grab"));
-                grab1.Append(new Choices("Chrome", "Media Player", "Visual Studio", "Github", "Eclipse", "Word", "Notepad"));
+                grab1.Append(new Choices("Genie", "Chrome", "Media Player", "Visual Studio", "Github", "Eclipse", "Word", "Notepad"));
                 var g1 = new Grammar(grab1);
                 this.speechEngine.LoadGrammar(g1);
 
 
                 GrammarBuilder drag1 = new GrammarBuilder { Culture = ri.Culture };
                 drag1.Append(new Choices("grab"));
-                drag1.Append(new Choices("Chrome", "Media Player", "Visual Studio", "Github", "Eclipse", "Word", "Notepad"));
+                drag1.Append(new Choices("Genie", "Chrome", "Media Player", "Visual Studio", "Github", "Eclipse", "Word", "Notepad"));
                 var d1 = new Grammar(drag1);
                 this.speechEngine.LoadGrammar(d1);
 
@@ -340,6 +340,7 @@ namespace Microsoft.Samples.Kinect.HackISUName
 
                 // For long recognition sessions (a few hours or more), it may be beneficial to turn off adaptation of the acoustic model. 
                 // This will prevent recognition accuracy from degrading over time.
+                speechEngine.UpdateRecognizerSetting("AdaptationOn", 1);
                 speechEngine.UpdateRecognizerSetting("AdaptationOn", 0);
 
                 this.speechEngine.SetInputToAudioStream(
@@ -992,7 +993,7 @@ namespace Microsoft.Samples.Kinect.HackISUName
         /// <param name="handState">state of the hand</param>
         /// <param name="handPosition">position of the hand</param>
         /// <param name="drawingContext">drawing context to draw to</param>
-        unsafe private void DrawHand(HandState handState, Point handPosition, DrawingContext drawingContext)
+        private void DrawHand(HandState handState, Point handPosition, DrawingContext drawingContext)
         {
             switch (handState)
             {
