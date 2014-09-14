@@ -51,7 +51,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Kinect">
-      <HintPath>$(KINECTSDK20_DIR)Assemblies\Microsoft.Kinect.dll</HintPath>
+      <HintPath>$(KINECTSDK20_DIR)\Assemblies\Microsoft.Kinect.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Speech, Version=11.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -77,7 +79,9 @@
     <Compile Include="Gestures\MouseGestures.cs" />
     <Compile Include="Gestures\WaveGestureSegment.cs" />
     <Compile Include="Gestures\WindowDragGestures.cs" />
+    <Compile Include="KinectAudioStream.cs" />
     <Compile Include="Win32.cs" />
+    <Compile Include="PhysWindow.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

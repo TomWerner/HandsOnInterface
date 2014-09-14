@@ -19,6 +19,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
     using System.Runtime.InteropServices;
     using System.Windows.Shapes;
     using Microsoft.Samples.Kinect.BodyBasics.Gestures;
+    using Microsoft.Speech.AudioFormat;
+    using Microsoft.Speech.Recognition;
+    using Microsoft.Samples.Kinect.SpeechBasics;
+    using System.Text;
 
     /// <summary>
     /// Interaction logic for MainWindow
@@ -131,7 +135,18 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         private string statusText = null;
 
         private IntPtr window;
-        private GestureListener waveGesture;
+
+
+        /// <summary>
+        /// Stream for 32b-16b conversion.
+        /// </summary>
+        private KinectAudioStream convertStream = null;
+
+        /// <summary>
+        /// Speech recognition engine using audio data from Kinect.
+        /// </summary>
+        private SpeechRecognitionEngine speechEngine = null;
+
 
         private enum HandMouseStates
         {
@@ -216,9 +231,89 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             // open the sensor
             this.kinectSensor.Open();
 
+            // grab the audio stream
+            IReadOnlyList<AudioBeam> audioBeamList = this.kinectSensor.AudioSource.AudioBeams;
+            System.IO.Stream audioStream = audioBeamList[0].OpenInputStream();
+
+            // create the convert stream
+            this.convertStream = new KinectAudioStream(audioStream);
+
             // set the status text
             this.StatusText = this.kinectSensor.IsAvailable ? Properties.Resources.RunningStatusText
                                                             : Properties.Resources.NoSensorStatusText;
+
+            RecognizerInfo ri = TryGetKinectRecognizer();
+
+            if (null != ri)
+            {
+                this.speechEngine = new SpeechRecognitionEngine(ri.Id);
+
+                //var directions = new Choices();
+                //directions.Add(new SemanticResultValue("hide", "hide"));
+                //directions.Add(new SemanticResultValue("minimize", "minimize"));
+                //directions.Add(new SemanticResultValue("maximize", "maximize"));
+                //directions.Add(new SemanticResultValue("snap left", "snap left"));
+                //directions.Add(new SemanticResultValue("snap right", "snap right"));
+                //directions.Add(new SemanticResultValue("front", "front"));
+                //directions.Add(new SemanticResultValue("drag", "drag"));
+                //directions.Add(new SemanticResultValue("get windows", "get windows"));
+
+                // Grammar for snapping
+                GrammarBuilder snap = new GrammarBuilder { Culture = ri.Culture };
+                // Any window
+                snap.Append(new Choices("snap"));
+                snap.Append(new Choices("Chrome", "Media Player", "Visual Studio", "Github", "Skype"));
+                snap.Append(new Choices("left", "right", "down", "up"));
+                var g = new Grammar(snap);
+                this.speechEngine.LoadGrammar(g);
+
+
+                GrammarBuilder snap2 = new GrammarBuilder { Culture = ri.Culture };
+                snap2.Append(new Choices("snap"));
+                snap2.AppendWildcard();
+                snap2.Append(new Choices("left", "right", "down", "up"));
+                var g4 = new Grammar(snap2);
+                this.speechEngine.LoadGrammar(g4);
+
+
+                GrammarBuilder grab1 = new GrammarBuilder { Culture = ri.Culture };
+                grab1.Append(new Choices("grab"));
+                grab1.Append(new Choices("Chrome", "Media Player", "Visual Studio", "Github", "Skype"));
+                var g1 = new Grammar(grab1);
+                this.speechEngine.LoadGrammar(g1);
+
+                GrammarBuilder grab2 = new GrammarBuilder { Culture = ri.Culture };
+                // Any window
+                grab2.Append(new Choices("grab"));
+                var g2 = new Grammar(grab2);
+                this.speechEngine.LoadGrammar(g2);
+
+                GrammarBuilder dropit = new GrammarBuilder { Culture = ri.Culture };
+                // Any window
+                dropit.Append(new Choices("drop it"));
+                var g3 = new Grammar(dropit);
+                this.speechEngine.LoadGrammar(g3);
+
+
+
+                this.speechEngine.SpeechRecognized += this.SpeechRecognized;
+                this.speechEngine.SpeechRecognitionRejected += this.SpeechRejected;
+
+                // let the convertStream know speech is going active
+                this.convertStream.SpeechActive = true;
+
+                // For long recognition sessions (a few hours or more), it may be beneficial to turn off adaptation of the acoustic model. 
+                // This will prevent recognition accuracy from degrading over time.
+                speechEngine.UpdateRecognizerSetting("AdaptationOn", 0);
+
+                this.speechEngine.SetInputToAudioStream(
+                    this.convertStream, new SpeechAudioFormatInfo(EncodingFormat.Pcm, 16000, 16, 1, 32000, 2, null));
+                this.speechEngine.RecognizeAsync(RecognizeMode.Multiple);
+            }
+            else
+            {
+                this.StatusText = "No recognizer";
+            }
 
             // Create the drawing group we'll use for drawing
             this.drawingGroup = new DrawingGroup();
@@ -231,22 +326,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             // initialize the components (controls) of the window
             this.InitializeComponent();
-
-
-            WaveSegment1 waveRightSegment1 = new WaveSegment1();
-            WaveSegment2 waveRightSegment2 = new WaveSegment2();
-            IGestureSegment[] wave = new IGestureSegment[]
-            {
-                waveRightSegment1,
-                waveRightSegment2,
-                waveRightSegment1,
-                waveRightSegment2,
-                waveRightSegment1,
-                waveRightSegment2
-            };
-
-            waveGesture = new GestureListener(wave);
-            waveGesture.GestureRecognized += Gesture_GestureRecognized;
 
             WindowDragStart dragSeg1 = new WindowDragStart();
             WindowDragMove dragSeg2 = new WindowDragMove();
@@ -286,6 +365,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             HandMouseState = HandMouseStates.WINDOW_DRAG;
             WindowDragData.resetOldHand = true;
             window = Win32.GetForegroundWindow();
+            physWindow = new PhysWindow(window);
         }
 
         public void Gesture_DragFinish(object sender, EventArgs e)
@@ -307,11 +387,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             HandMouseState = HandMouseStates.NONE;
         }
 
-        public void Gesture_GestureRecognized(object sender, EventArgs e)
-        {
-            Console.WriteLine("You just waved!");
-        }
-
         /// <summary>
         /// INotifyPropertyChangedPropertyChanged event to allow window controls to bind to changeable data
         /// </summary>
@@ -320,6 +395,8 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         private GestureListener windowDragGestureFinish;
         private GestureListener mouseMoveGesture;
         private GestureListener mouseMoveGestureFinish;
+        private Dictionary<string, IntPtr> processNameMap;
+        private PhysWindow physWindow;
 
         /// <summary>
         /// Gets the bitmap to display
@@ -457,7 +534,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             this.DrawHand(body.HandLeftState, jointPoints[JointType.HandLeft], dc);
                             this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
 
-                            waveGesture.Update(body);
                             windowDragGesture.Update(body);
                             windowDragGestureFinish.Update(body);
                             mouseMoveGesture.Update(body);
@@ -475,6 +551,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
         private void handMouseBehavior(Body body, Point leftHand, Point rightHand)
         {
+            if (physWindow != null)
+            {
+                physWindow.update();
+            }
             switch (HandMouseState)
             {
                 case HandMouseStates.NONE:
@@ -553,13 +633,9 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             dx *= multiplier;
             dy *= multiplier;
 
-            Win32.RECT current;
-            Win32.GetWindowRect(window, out current);
-            Win32.SetWindowPos(window, new IntPtr(0), current.left + (int)dx, current.top + (int)dy, -1, -1, Win32.SetWindowPosFlags.SWP_NOSIZE);
-
-                    
-
-
+            Point goal = new Point(physWindow.topLeft.X + dx, physWindow.topLeft.Y + dy);
+            physWindow.setPoint(goal);
+            physWindow.update();
         }
 
         private void checkForFling(Body body, Point leftHand, Point rightHand)
@@ -575,36 +651,11 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             {
                 mousePoint = rightHand;
             }
-            double dx2 = mousePoint.X - WindowDragData.lastHandPoint.X;
-            double dy2 = mousePoint.Y - WindowDragData.lastHandPoint.Y;
-            Rect workArea = System.Windows.SystemParameters.WorkArea;
-            double totalChange = Math.Sqrt(Math.Pow(dx2, 2) + Math.Pow(dy2, 2));
-            if (totalChange / armLength > 10)
-            {
-                Console.WriteLine("FLING" + (dx2 / totalChange));
-                if (Math.Abs(dx2 / totalChange) > .5)
-                {
-                    if (dx2 > 0)
-                    {
-                        Win32.SetWindowPos(window, new IntPtr(0), (int)workArea.Width / 2, 0, (int)workArea.Width / 2, (int)workArea.Height, Win32.SetWindowPosFlags.SWP_SHOWWINDOW);
-                    }
-                    else
-                    {
-                        Win32.SetWindowPos(window, new IntPtr(0), 0, 0, (int)workArea.Width / 2, (int)workArea.Height, Win32.SetWindowPosFlags.SWP_SHOWWINDOW);
-                    }
-                }
-                else
-                {
-                    if (dy2 < 0)
-                    {
-                        Win32.ShowWindow(window, Win32.SW_MAXIMIZE);
-                    }
-                    else
-                    {
-                        Win32.ShowWindow(window, Win32.SW_MINIMIZE);
-                    }
-                }
-            }
+            double dx = mousePoint.X - WindowDragData.lastHandPoint.X;
+            double dy = mousePoint.Y - WindowDragData.lastHandPoint.Y;
+           
+            Point goal = new Point(physWindow.topLeft.X + dx, physWindow.topLeft.Y + dy);
+            physWindow.addGoalPoint(goal);
         }
 
         private double calculateArmLength(Body body)
@@ -807,5 +858,218 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             this.StatusText = this.kinectSensor.IsAvailable ? Properties.Resources.RunningStatusText
                                                             : Properties.Resources.SensorNotAvailableStatusText;
         }
+
+        /// <summary>
+        /// Execute un-initialization tasks.
+        /// </summary>
+        /// <param name="sender">object sending the event.</param>
+        /// <param name="e">event arguments.</param>
+        private void WindowClosing(object sender, CancelEventArgs e)
+        {
+            if (null != this.convertStream)
+            {
+                this.convertStream.SpeechActive = false;
+            }
+
+            if (null != this.speechEngine)
+            {
+                this.speechEngine.SpeechRecognized -= this.SpeechRecognized;
+                this.speechEngine.SpeechRecognitionRejected -= this.SpeechRejected;
+                this.speechEngine.RecognizeAsyncStop();
+            }
+
+            if (null != this.kinectSensor)
+            {
+                this.kinectSensor.Close();
+                this.kinectSensor = null;
+            }
+        }
+
+        /// <summary>
+        /// Handler for recognized speech events.
+        /// </summary>
+        /// <param name="sender">object sending the event.</param>
+        /// <param name="e">event arguments.</param>
+        private void SpeechRecognized(object sender, SpeechRecognizedEventArgs e)
+        {
+            processNameMap = new Dictionary<String, IntPtr>();
+            Process[] processlist = Process.GetProcesses();
+            foreach (Process process in processlist)
+            {
+                if (!String.IsNullOrEmpty(process.MainWindowTitle))
+                {
+                    //Console.WriteLine(process.MainWindowTitle);
+                    processNameMap.Add(process.MainWindowTitle, process.MainWindowHandle);
+                }
+            }
+
+            // Speech utterance confidence below which we treat speech as if it hadn't been heard
+            const double ConfidenceThreshold = 0.3;
+
+            if (e.Result.Confidence >= ConfidenceThreshold)
+            {
+                //Console.WriteLine(e.Result.Text);
+                //if (e.Result.Text.Contains("front"))
+                //{
+                //    window = Win32.GetForegroundWindow();
+                //}
+                //if (e.Result.Text.Contains("hide") || e.Result.Text.Contains("min"))
+                //{
+                //    Win32.ShowWindow(window, Win32.SW_MINIMIZE);
+                //}
+                //if (e.Result.Text.Contains("max"))
+                //{
+                //    Win32.ShowWindow(window, Win32.SW_MAXIMIZE);
+                //}
+                //Rect workArea = System.Windows.SystemParameters.WorkArea;
+                //if (e.Result.Text.Contains("snap left"))
+                //{
+                //    Win32.SetWindowPos(window, new IntPtr(0), 0, 0, (int)workArea.Width / 2, (int)workArea.Height, Win32.SetWindowPosFlags.SWP_SHOWWINDOW);
+                //}
+                //if (e.Result.Text.Contains("snap right"))
+                //{
+                //    Win32.SetWindowPos(window, new IntPtr(0), (int)workArea.Width / 2, 0, (int)workArea.Width / 2, (int)workArea.Height, Win32.SetWindowPosFlags.SWP_SHOWWINDOW);
+                //}
+                //if (e.Result.Text.Contains("drag"))
+                //{
+                //    HandMouseState = HandMouseStates.WINDOW_DRAG;
+                //    WindowDragData.resetOldHand = true;
+                //    window = Win32.GetForegroundWindow();
+                //}
+                //if (e.Result.Text.Contains("pause music"))
+                //{
+                    
+                //}
+                //if (e.Result.Text.Contains("get windows"))
+                //{
+                //    processNameMap = new Dictionary<String, IntPtr>();
+                //    Process[] processlist = Process.GetProcesses();
+                //    foreach (Process process in processlist)
+                //    {
+                //        if (!String.IsNullOrEmpty(process.MainWindowTitle))
+                //        {
+                //            processNameMap.Add(process.MainWindowTitle, process.MainWindowHandle);
+                //        }
+                //    }
+                //}
+                Console.WriteLine(e.Result.Text);
+                bool snapOn = false;
+                if (e.Result.Text.ToUpper().Contains("SNAP"))
+                {
+                    snapOn = true;
+                    window = IntPtr.Zero;
+                    foreach (String key in processNameMap.Keys)
+                    {
+                        if (key.ToUpper().Contains(e.Result.Words[1].Text.ToUpper()))
+                        {
+                            window = processNameMap[key];
+                        }
+                    }
+                }
+                if (window == IntPtr.Zero)
+                {
+                    window = Win32.GetForegroundWindow(); 
+                    foreach (String key in processNameMap.Keys)
+                    {
+                        Console.WriteLine(key);
+                    }
+                }
+                if (snapOn)
+                {
+                    Rect workArea = System.Windows.SystemParameters.WorkArea;
+                    if (e.Result.Text.ToUpper().Contains("LEFT"))
+                    {
+                        Win32.SetForegroundWindow(window);
+                        Win32.ShowWindow(window, Win32.SW_RESTORE);
+                        Win32.SetWindowPos(window, new IntPtr(0), 0, 0, (int)workArea.Width / 2, (int)workArea.Height, Win32.SetWindowPosFlags.SWP_SHOWWINDOW);
+                    }
+                    if (e.Result.Text.ToUpper().Contains("RIGHT"))
+                    {
+                        Win32.SetForegroundWindow(window);
+                        Win32.ShowWindow(window, Win32.SW_RESTORE);
+                        Win32.SetWindowPos(window, new IntPtr(0), (int)workArea.Width / 2, 0, (int)workArea.Width / 2, (int)workArea.Height, Win32.SetWindowPosFlags.SWP_SHOWWINDOW);
+                    }
+                    if (e.Result.Text.ToUpper().Contains("UP"))
+                    {
+                        Win32.SetForegroundWindow(window);
+                        Win32.ShowWindow(window, Win32.SW_RESTORE);
+                        Win32.SetWindowPos(window, new IntPtr(0), 0, 0, (int)workArea.Width, (int)workArea.Height, Win32.SetWindowPosFlags.SWP_SHOWWINDOW);
+                    }
+                    if (e.Result.Text.ToUpper().Contains("DOWN"))
+                    {
+                        Win32.ShowWindow(window, Win32.SW_MINIMIZE);
+                    }
+                }
+
+                if (e.Result.Words[e.Result.Words.Count - 1].Text.ToUpper() == "GRAB")
+                {
+                    window = Win32.GetForegroundWindow();
+                    Gesture_DragMove(null, null);
+                }
+                else if (e.Result.Text.ToUpper().Contains("GRAB"))
+                {
+                    foreach (String key in processNameMap.Keys)
+                    {
+                        Rect workArea = System.Windows.SystemParameters.WorkArea;
+                        if (key.ToUpper().Contains(e.Result.Words[e.Result.Words.Count - 1].Text.ToUpper()))
+                        {
+                            window = processNameMap[key];
+                            Gesture_DragMove(null, null);
+                        }
+                    }
+                }
+
+                if (e.Result.Text.ToUpper().Contains("DROP IT"))
+                {
+                    HandMouseState = HandMouseStates.NONE;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handler for rejected speech events.
+        /// </summary>
+        /// <param name="sender">object sending the event.</param>
+        /// <param name="e">event arguments.</param>
+        private void SpeechRejected(object sender, SpeechRecognitionRejectedEventArgs e)
+        {
+        }
+
+        /// <summary>
+        /// Gets the metadata for the speech recognizer (acoustic model) most suitable to
+        /// process audio from Kinect device.
+        /// </summary>
+        /// <returns>
+        /// RecognizerInfo if found, <code>null</code> otherwise.
+        /// </returns>
+        private static RecognizerInfo TryGetKinectRecognizer()
+        {
+            IEnumerable<RecognizerInfo> recognizers;
+
+            // This is required to catch the case when an expected recognizer is not installed.
+            // By default - the x86 Speech Runtime is always expected. 
+            try
+            {
+                recognizers = SpeechRecognitionEngine.InstalledRecognizers();
+            }
+            catch (COMException)
+            {
+                return null;
+            }
+
+            foreach (RecognizerInfo recognizer in recognizers)
+            {
+                string value;
+                recognizer.AdditionalInfo.TryGetValue("Kinect", out value);
+                if ("True".Equals(value, StringComparison.OrdinalIgnoreCase) && "en-US".Equals(recognizer.Culture.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return recognizer;
+                }
+            }
+
+            return null;
+        }
     }
+
+
 }

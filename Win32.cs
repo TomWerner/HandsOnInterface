@@ -48,6 +48,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
         public const int SW_MAXIMIZE = 3;
         public const int SW_MINIMIZE = 6;
+        public static int SW_RESTORE = 9;
 
         [Flags]
         public enum MouseEventFlags
@@ -61,6 +62,30 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             RightDown = 0x00000008,
             RightUp = 0x00000010
         }
+
+        public const int VK_BROWSER_BACK        = 0xA6;
+        public const int VK_BROWSER_FORWARD     = 0xA7;
+        public const int VK_BROWSER_REFRESH     = 0xA8;
+        public const int VK_BROWSER_STOP        = 0xA9;
+        public const int VK_BROWSER_SEARCH      = 0xAA;
+        public const int VK_BROWSER_FAVORITES   = 0xAB;
+        public const int VK_BROWSER_HOME        = 0xAC;
+
+        public const int VK_VOLUME_MUTE         = 0xAD;
+        public const int VK_VOLUME_DOWN         = 0xAE;
+        public const int VK_VOLUME_UP           = 0xAF;
+        public const int VK_MEDIA_NEXT_TRACK    = 0xB0;
+        public const int VK_MEDIA_PREV_TRACK    = 0xB1;
+        public const int VK_MEDIA_STOP          = 0xB2;
+        public const int VK_MEDIA_PLAY_PAUSE    = 0xB3;
+        public const int VK_LAUNCH_MAIL         = 0xB4;
+        public const int VK_LAUNCH_MEDIA_SELECT = 0xB5;
+        public const int VK_LAUNCH_APP1         = 0xB6;
+        public const int VK_LAUNCH_APP2 = 0xB7;
+        public const int WM_APPCOMMAND = 0x0319;
+        public const int APPCOMMAND_VOLUME_MUTE = 0x80000;
+        public const int APPCOMMAND_VOLUME_UP = 0xA0000;
+        public const int APPCOMMAND_VOLUME_DOWN = 0x90000;
         
         public struct RECT
         {
@@ -83,10 +108,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         }
 
         [DllImport("user32.dll")]
-        public static extern IntPtr FindWindow(string lpClassName, String lpWindowName);
+        public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
 
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern uint RegisterWindowMessage(string lpString);
+        [DllImport("user32.dll")]
+        public static extern IntPtr FindWindow(string lpClassName, String lpWindowName);
 
         [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
@@ -102,8 +127,17 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        public static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+        
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+        
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
+        public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SendMessageW(IntPtr hWnd, int Msg,
+            IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
