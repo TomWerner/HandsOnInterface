@@ -25,6 +25,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
     /// </summary>
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
+
         /// <summary>
         /// Radius of drawn hand circles
         /// </summary>
@@ -132,6 +133,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
         private IntPtr window;
         private GestureListener waveGesture;
+        private GestureListener knockGesture;
 
         private enum HandMouseStates
         {
@@ -232,6 +234,16 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             // initialize the components (controls) of the window
             this.InitializeComponent();
 
+            KnockSegment1 knockSegment1 = new KnockSegment1();
+            KnockSegment2 knockSegment2 = new KnockSegment2();
+            IGestureSegment[] knock = new IGestureSegment[]
+            {
+                knockSegment1,
+                knockSegment2
+            };
+
+            knockGesture = new GestureListener(knock);
+            knockGesture.GestureRecognized += Gesture_KnockRecognized;
 
             WaveSegment1 waveRightSegment1 = new WaveSegment1();
             WaveSegment2 waveRightSegment2 = new WaveSegment2();
@@ -246,13 +258,14 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             };
 
             waveGesture = new GestureListener(wave);
-            waveGesture.GestureRecognized += Gesture_GestureRecognized;
+            waveGesture.GestureRecognized += Gesture_WaveRecognized;
 
             WindowDragStart dragSeg1 = new WindowDragStart();
             WindowDragMove dragSeg2 = new WindowDragMove();
             MouseMoveStart mouseSeg1 = new MouseMoveStart();
             MouseMove mouseSeg2 = new MouseMove();
             FinishedGesture finished = new FinishedGesture();
+            
             IGestureSegment[] windowDrag = new IGestureSegment[]
             {
                 dragSeg1,
@@ -308,9 +321,14 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             HandMouseState = HandMouseStates.NONE;
         }
 
-        public void Gesture_GestureRecognized(object sender, EventArgs e)
+        public void Gesture_WaveRecognized(object sender, EventArgs e)
         {
             Console.WriteLine("You just waved!");
+        }
+
+        public void Gesture_KnockRecognized(object sender, EventArgs e)
+        {
+            Console.WriteLine("You just knocked!");
         }
 
         /// <summary>
@@ -461,6 +479,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
 
                             waveGesture.Update(body);
+                            knockGesture.Update(body);
                             windowDragGesture.Update(body);
                             windowDragGestureFinish.Update(body);
                             mouseMoveGesture.Update(body);
@@ -493,11 +512,13 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                     double armLength = calculateArmLength(body);
                     if (MouseMoveData.dragHand == JointType.HandLeft)
                     {
+                        MouseMoveData.signalHand = JointType.HandRight;
                         mousePoint = leftHand;
                         zCoordinate = leftZ;
                     }
                     else
                     {
+                        MouseMoveData.signalHand = JointType.HandLeft;
                         mousePoint = rightHand;
                         zCoordinate = rightZ;
                     }
@@ -514,11 +535,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                     MouseMoveData.lastHandPoint = mousePoint;
                     MouseMoveData.lastHandZ = zCoordinate;
 
-                    if (dz > armLength / 15)
-                    {
-                        Win32.mouse_event((int)Win32.MouseEventFlags.LeftDown,0,0,0,0);
-                    }
-                    else
                     {
                         double screenWidth = System.Windows.SystemParameters.PrimaryScreenWidth;
                         double screenHeight = System.Windows.SystemParameters.PrimaryScreenHeight;

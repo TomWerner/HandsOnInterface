@@ -15,6 +15,8 @@ namespace Microsoft.Samples.Kinect.BodyBasics.Gestures
         public static float lastHandZ;
         public static bool resetOldHand;
 
+        public static JointType signalHand;
+
         public static bool checkForFling { get; set; }
     }
 
