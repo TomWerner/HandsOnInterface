@@ -1,11 +1,11 @@
 ﻿using Microsoft.Kinect;
-using Microsoft.Samples.Kinect.BodyBasics.Gestures;
+using Microsoft.Samples.Kinect.HackISUName.Gestures;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Samples.Kinect.BodyBasics
+namespace Microsoft.Samples.Kinect.HackISUName
 {
     public class KnockGestureData
     {

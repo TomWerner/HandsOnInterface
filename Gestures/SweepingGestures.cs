@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Samples.Kinect.BodyBasics.Gestures
+namespace Microsoft.Samples.Kinect.HackISUName.Gestures
 {
     public class HideAllStart : IGestureSegment
     {

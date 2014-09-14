@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace Microsoft.Samples.Kinect.BodyBasics
+namespace Microsoft.Samples.Kinect.HackISUName
 {
     public class Win32
     {

@@ -4,7 +4,7 @@
 // </copyright>
 //------------------------------------------------------------------------------
 
-namespace Microsoft.Samples.Kinect.BodyBasics
+namespace Microsoft.Samples.Kinect.HackISUName
 {
     using System;
     using System.Collections.Generic;
@@ -18,7 +18,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
     using Microsoft.Kinect;
     using System.Runtime.InteropServices;
     using System.Windows.Shapes;
-    using Microsoft.Samples.Kinect.BodyBasics.Gestures;
+    using Microsoft.Samples.Kinect.HackISUName.Gestures;
     using Microsoft.Speech.AudioFormat;
     using Microsoft.Speech.Recognition;
     using Microsoft.Samples.Kinect.SpeechBasics;
@@ -313,6 +313,22 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 mouse.Append(new Choices("mouse mode"));
                 var mg = new Grammar(mouse);
                 this.speechEngine.LoadGrammar(mg);
+
+
+
+                GrammarBuilder click = new GrammarBuilder { Culture = ri.Culture };
+                click.Append(new Choices("click", "double click", "right click"));
+                var clickGram = new Grammar(click);
+                this.speechEngine.LoadGrammar(clickGram);
+
+                GrammarBuilder go = new GrammarBuilder { Culture = ri.Culture };
+                go.Append(new Choices("lets hack", "shut it down"));
+                var goGram = new Grammar(go);
+                this.speechEngine.LoadGrammar(goGram);
+
+
+
+
 
 
 
@@ -900,26 +916,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             return armLength;
         }
 
-
-        private void ProcessHandGestures(Body body, Joint left, Joint right, Joint head)
-        {
-            if (body.HandLeftState == HandState.Closed)
-            {
-                //int dx = (int)(rightPoint.X - lastRightPoint.X);
-                //int dy = (int)(rightPoint.Y - lastRightPoint.Y);
-                //Console.WriteLine(dx + ", " + dy);
-                //Win32.POINT lpPoint;
-                //Win32.GetCursorPos(out lpPoint);
-                //Win32.SetCursorPos(lpPoint.X + dx, lpPoint.Y + dy);
-
-                /*
-                RECT current;
-                GetWindowRect(window, out current);
-                SetWindowPos(window, new IntPtr(0), current.left + dx, current.top + dy, -1, -1, SetWindowPosFlags.SWP_NOSIZE);
-                 */
-            }
-        }
-
         /// <summary>
         /// Draws a body
         /// </summary>
@@ -1002,24 +998,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             {
                 case HandState.Closed:
                     drawingContext.DrawEllipse(this.handClosedBrush, null, handPosition, HandSize, HandSize);
-                    //ShowWindow(window, 6);
-
-                    //this is to test I have a valid handle
-                    //SetWindowPos(window, new IntPtr(0), 10, 10, 1024, 350, SetWindowPosFlags.SWP_DRAWFRAME);
-
-                    //SendMessage(window, WM_VSCROLL, (IntPtr)SB_LINEDOWN, IntPtr.Zero);
-                    
                     break;
 
                 case HandState.Open:
                     drawingContext.DrawEllipse(this.handOpenBrush, null, handPosition, HandSize, HandSize);
-                    //ShowWindow(window, 9);
-
-                    //this is to test I have a valid handle
-                    //SetWindowPos(window, new IntPtr(0), 200, 10, 1024, 350, SetWindowPosFlags.SWP_DRAWFRAME);
-
-                    //SendMessage(window, WM_VSCROLL, (IntPtr)SB_LINEUP, IntPtr.Zero);
-                    
                     break;
 
                 case HandState.Lasso:
@@ -1181,12 +1163,12 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                     }
                 }
 
-                if (e.Result.Words[e.Result.Words.Count - 1].Text.ToUpper() == "GRAB" || e.Result.Words[e.Result.Words.Count - 1].Text.ToUpper() == "DRAG")
+                if (e.Result.Words[e.Result.Words.Count - 1].Text.ToUpper() == "GRAB")
                 {
                     window = Win32.GetForegroundWindow();
                     Gesture_DragMove(null, null);
                 }
-                else if (e.Result.Text.ToUpper().Contains("GRAB") || e.Result.Text.ToUpper().Contains("DRAG"))
+                else if (e.Result.Text.ToUpper().Contains("GRAB"))
                 {
                     foreach (String key in processNameMap.Keys)
                     {
@@ -1207,6 +1189,31 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 if (e.Result.Text.ToUpper().Contains("MOUSE MODE"))
                 {
                     Gesture_MouseMove(null, null);
+                }
+
+
+                if (e.Result.Text.ToUpper().Contains("CLICK"))
+                {
+                    Gesture_KnockRecognized(null, null);
+                    Gesture_KnockPullRecognized(null, null);
+                }
+                else if (e.Result.Text.ToUpper().Contains("DOUBLE CLICK"))
+                {
+                    Gesture_PokeRecognized(null, null);
+                }
+                else if (e.Result.Text.ToUpper().Contains("RIGHT CLICK"))
+                {
+                    Gesture_SlapRecognized(null, null);
+                }
+
+
+                if (e.Result.Text.ToUpper().Contains("LETS HACK"))
+                {
+                    Gesture_ShowAll(null, null);
+                }
+                else if (e.Result.Text.ToUpper().Contains("SHUT IT DOWN"))
+                {
+                    Gesture_HideAll(null, null);
                 }
             }
         }

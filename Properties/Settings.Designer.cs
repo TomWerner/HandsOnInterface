@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Microsoft.Samples.Kinect.BodyBasics.Properties {
+namespace Microsoft.Samples.Kinect.HackISUName.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
