@@ -51,10 +51,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             
             topLeft.X += velocity.X;
             topLeft.Y += velocity.Y;
-            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.X) > .01 && velocity.X < 0; velocity.X += .01, i++) ;
-            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.X) > .01 && velocity.X > 0; velocity.X -= .01, i++) ;
-            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.Y) > .01 && velocity.Y < 0; velocity.Y += .01, i++) ;
-            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.Y) > .01 && velocity.Y > 0; velocity.Y -= .01, i++) ;
+            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.X) > .01 && velocity.X < 0; velocity.X += .01, i++);
+            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.X) > .01 && velocity.X > 0; velocity.X -= .01, i++);
+            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.Y) > .01 && velocity.Y < 0; velocity.Y += .01, i++);
+            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.Y) > .01 && velocity.Y > 0; velocity.Y -= .01, i++);
 
             double screenWidth = System.Windows.SystemParameters.PrimaryScreenWidth;
             double screenHeight = System.Windows.SystemParameters.PrimaryScreenHeight;
