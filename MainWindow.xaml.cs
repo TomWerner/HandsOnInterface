@@ -159,7 +159,9 @@ namespace Microsoft.Samples.Kinect.HackISUName
             CURSOR,
             WINDOW_DRAG,
             SCROLL_UP,
-            SCROLL_DOWN
+            SCROLL_DOWN,
+            VOLUME_UP,
+            VOLUME_DOWN
         }
         private HandMouseStates HandMouseState = HandMouseStates.NONE;
         
@@ -406,6 +408,8 @@ namespace Microsoft.Samples.Kinect.HackISUName
             MouseMoveStart mouseSeg1 = new MouseMoveStart();
             ScrollUpStart scrollUpSeg1 = new ScrollUpStart();
             ScrollDownStart scrollUpSeg2 = new ScrollDownStart();
+            VolumeUpStart volumeUpStart = new VolumeUpStart();
+            VolumeDownStart volumeDownStart = new VolumeDownStart();
             ShowAllStart showSeg1 = new ShowAllStart();
             HideAllStart showSeg2 = new HideAllStart();
             MouseMove mouseSeg2 = new MouseMove();
@@ -436,6 +440,17 @@ namespace Microsoft.Samples.Kinect.HackISUName
             {
                 scrollUpSeg2,
                 scrollUpSeg1
+            };
+
+            IGestureSegment[] volumeUp = new IGestureSegment[]
+            {
+                volumeUpStart,
+                volumeDownStart
+            };
+            IGestureSegment[] volumeDown = new IGestureSegment[]
+            {
+                volumeDownStart,
+                volumeUpStart
             };
 
             IGestureSegment[] bringUp = new IGestureSegment[]
@@ -469,6 +484,15 @@ namespace Microsoft.Samples.Kinect.HackISUName
 
             scrollGestureFinish = new GestureListener(finishedSequence);
             scrollGestureFinish.GestureRecognized += Gesture_ScrollFinish;
+
+            volumeUpGesture = new GestureListener(volumeUp);
+            volumeUpGesture.GestureRecognized += Gesture_VolumeUp;
+
+            volumeDownGesture = new GestureListener(volumeDown);
+            volumeDownGesture.GestureRecognized += Gesture_VolumeDown;
+
+            volumeGestureFinish = new GestureListener(finishedSequence);
+            volumeGestureFinish.GestureRecognized += Gesture_VolumeFinish;
 
             showAllGesture = new GestureListener(bringUp);
             showAllGesture.GestureRecognized += Gesture_ShowAll;
@@ -524,6 +548,25 @@ namespace Microsoft.Samples.Kinect.HackISUName
             HandMouseState = HandMouseStates.SCROLL_DOWN;
         }
 
+        private void Gesture_VolumeFinish(object sender, EventArgs e)
+        {
+            if (HandMouseState == HandMouseStates.VOLUME_DOWN || HandMouseState == HandMouseStates.VOLUME_UP)
+            {
+                HandMouseState = HandMouseStates.NONE;
+                Win32.keybd_event(Win32.VK_VOLUME_UP, 0, Win32.KEYEVENTF_KEYUP, 0);
+                Win32.keybd_event(Win32.VK_VOLUME_DOWN, 0, Win32.KEYEVENTF_KEYUP, 0);
+            }
+        }
+
+        private void Gesture_VolumeUp(object sender, EventArgs e)
+        {
+            HandMouseState = HandMouseStates.VOLUME_UP;
+        }
+
+        private void Gesture_VolumeDown(object sender, EventArgs e)
+        {
+            HandMouseState = HandMouseStates.VOLUME_DOWN;
+        }
         public void Gesture_DragMove(object sender, EventArgs e)
         {
             HandMouseState = HandMouseStates.WINDOW_DRAG;
@@ -589,6 +632,9 @@ namespace Microsoft.Samples.Kinect.HackISUName
         private GestureListener scrollUpGesture;
         private GestureListener scrollGestureFinish;
         private GestureListener scrollDownGesture;
+        private GestureListener volumeUpGesture;
+        private GestureListener volumeGestureFinish;
+        private GestureListener volumeDownGesture;
         private GestureListener showAllGesture;
         private GestureListener hideAllGesture;
 
@@ -741,6 +787,9 @@ namespace Microsoft.Samples.Kinect.HackISUName
                             scrollUpGesture.Update(body);
                             scrollDownGesture.Update(body);
                             scrollGestureFinish.Update(body);
+                            volumeUpGesture.Update(body);
+                            volumeDownGesture.Update(body);
+                            volumeGestureFinish.Update(body);
                             showAllGesture.Update(body);
                             hideAllGesture.Update(body);
 
@@ -755,6 +804,7 @@ namespace Microsoft.Samples.Kinect.HackISUName
         }
 
         private int scrollCounter = 0;
+        private int volumeCounter = 0;
         private void handMouseBehavior(Body body, Point leftHand, Point rightHand,float leftZ, float rightZ)
         {
             if (physWindow != null)
@@ -837,6 +887,36 @@ namespace Microsoft.Samples.Kinect.HackISUName
 
                     if (scrollCounter % delay2 == 0)
                         Win32.SendMessage(window, Win32.WM_VSCROLL, (IntPtr)Win32.SB_LINEDOWN, IntPtr.Zero);
+                    break;
+                case HandMouseStates.VOLUME_UP:
+                    volumeCounter++;
+
+                    double maxSpeed3 = body.Joints[JointType.ShoulderLeft].Position.Y - body.Joints[JointType.HipLeft].Position.Y;
+                    double dist3 = Math.Min(maxSpeed3, body.Joints[JointType.ShoulderLeft].Position.Y - body.Joints[JointType.HandLeft].Position.Y);
+
+                    int delay3 = (int)((1 - dist3 / maxSpeed3) * 5) + 1;
+
+                    if (scrollCounter % delay3 == 0)
+                    {
+                        Win32.keybd_event(Win32.VK_VOLUME_UP, 0, 0, 0);
+                        Console.WriteLine("Volume Up!");
+                    }
+                    Console.WriteLine("State is Volume_Up");
+                    break;
+                case HandMouseStates.VOLUME_DOWN:
+                    volumeCounter++;
+
+                    double maxSpeed4 = body.Joints[JointType.ShoulderLeft].Position.Y - body.Joints[JointType.HipLeft].Position.Y;
+                    double dist4 = Math.Min(maxSpeed4, body.Joints[JointType.ShoulderLeft].Position.Y - body.Joints[JointType.HandLeft].Position.Y);
+
+                    int delay4 = (int)((1 - dist4 / maxSpeed4) * 5) + 1;
+
+                    if (scrollCounter % delay4 == 0)
+                    {
+                        Win32.keybd_event(Win32.VK_VOLUME_DOWN, 0, 0, 0);
+                        Console.WriteLine("Volume Down!");
+                    }
+                    Console.WriteLine("State is Volume_Down");
                     break;
                 default:
                     break;

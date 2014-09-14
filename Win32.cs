@@ -86,6 +86,7 @@ namespace Microsoft.Samples.Kinect.HackISUName
         public const int APPCOMMAND_VOLUME_MUTE = 0x80000;
         public const int APPCOMMAND_VOLUME_UP = 0xA0000;
         public const int APPCOMMAND_VOLUME_DOWN = 0x90000;
+        public const int KEYEVENTF_KEYUP = 0x0002;
         
         public struct RECT
         {
