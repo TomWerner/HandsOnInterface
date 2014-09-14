@@ -74,6 +74,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Gestures\PausePlayGestures.cs" />
     <Compile Include="Gestures\VolumeGestures.cs" />
     <Compile Include="Gestures\PokeGestures.cs" />
     <Compile Include="Gestures\SlapGestures.cs" />

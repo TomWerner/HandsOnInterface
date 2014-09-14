@@ -68,4 +68,24 @@ namespace Microsoft.Samples.Kinect.HackISUName.Gestures
             return GesturePartResult.Failed;
         }
     }
+
+    public class ScrollFinishedGesture : IGestureSegment
+    {
+        /// <summary>
+        /// Updates the current gesture.
+        /// </summary>
+        /// <param name="skeleton">The skeleton.</param>
+        /// <returns>A GesturePartResult based on whether the gesture part has been completed.</returns>
+        public GesturePartResult Update(Body skeleton)
+        {
+            // Hand in closed mode
+            if (skeleton.HandRightState == HandState.Open)
+            {
+                return GesturePartResult.Succeeded;
+            }
+
+            // Hand dropped
+            return GesturePartResult.Failed;
+        }
+    }
 }

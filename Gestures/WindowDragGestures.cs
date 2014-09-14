@@ -92,7 +92,7 @@ namespace Microsoft.Samples.Kinect.HackISUName.Gestures
         }
     }
 
-    public class FinishedGesture : IGestureSegment
+    public class DragFinishedGesture : IGestureSegment
     {
         /// <summary>
         /// Updates the current gesture.

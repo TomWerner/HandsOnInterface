@@ -95,4 +95,24 @@ namespace Microsoft.Samples.Kinect.HackISUName.Gestures
         }
     }
 
+    public class MouseFinishedGesture : IGestureSegment
+    {
+        /// <summary>
+        /// Updates the current gesture.
+        /// </summary>
+        /// <param name="skeleton">The skeleton.</param>
+        /// <returns>A GesturePartResult based on whether the gesture part has been completed.</returns>
+        public GesturePartResult Update(Body skeleton)
+        {
+            // Hand in closed mode
+            if ((MouseMoveData.dragHand == JointType.HandLeft && skeleton.HandLeftState == HandState.Open) ||
+                (MouseMoveData.dragHand == JointType.HandRight && skeleton.HandRightState == HandState.Open))
+            {
+                return GesturePartResult.Succeeded;
+            }
+
+            // Hand dropped
+            return GesturePartResult.Failed;
+        }
+    }
 }
