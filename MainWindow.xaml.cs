@@ -138,6 +138,9 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
         private IntPtr window;
         private GestureListener knockGesture;
+        private GestureListener knockPullGesture;
+        private GestureListener slapGesture;
+        private GestureListener pokeGesture;
 
         /// <summary>
         /// Stream for 32b-16b conversion.
@@ -346,14 +349,41 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             KnockSegment1 knockSegment1 = new KnockSegment1();
             KnockSegment2 knockSegment2 = new KnockSegment2();
+            KnockSegment3 knockSegment3 = new KnockSegment3();
+            SlapSegment1 slapSegment1 = new SlapSegment1();
+            SlapSegment2 slapSegment2 = new SlapSegment2();
+            PokeSegment1 pokeSegment1 = new PokeSegment1();
+            PokeSegment2 pokeSegment2 = new PokeSegment2();
+
             IGestureSegment[] knock = new IGestureSegment[]
             {
                 knockSegment1,
                 knockSegment2
             };
+            IGestureSegment[] knockPull = new IGestureSegment[]
+            {
+                knockSegment1,
+                knockSegment3
+            };
+            IGestureSegment[] slap = new IGestureSegment[]
+            {
+                slapSegment1,
+                slapSegment2
+            };
+            IGestureSegment[] poke = new IGestureSegment[]
+            {
+                pokeSegment1,
+                pokeSegment2
+            };
 
             knockGesture = new GestureListener(knock);
             knockGesture.GestureRecognized += Gesture_KnockRecognized;
+            knockPullGesture = new GestureListener(knockPull);
+            knockPullGesture.GestureRecognized += Gesture_KnockPullRecognized;
+            slapGesture = new GestureListener(slap);
+            slapGesture.GestureRecognized += Gesture_SlapRecognized;
+            pokeGesture = new GestureListener(poke);
+            pokeGesture.GestureRecognized += Gesture_PokeRecognized;
 
             WindowDragStart dragSeg1 = new WindowDragStart();
             WindowDragMove dragSeg2 = new WindowDragMove();
@@ -508,7 +538,26 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
         public void Gesture_KnockRecognized(object sender, EventArgs e)
         {
-            Console.WriteLine("You just knocked!");
+            Win32.mouse_event((int)Win32.MouseEventFlags.LeftDown, 0, 0, 0, 0);
+        }
+
+        public void Gesture_KnockPullRecognized(object sender, EventArgs e)
+        {
+            Win32.mouse_event((int)Win32.MouseEventFlags.LeftUp, 0, 0, 0, 0);
+        }
+
+        public void Gesture_SlapRecognized(object sender, EventArgs e)
+        {
+            Win32.mouse_event((int)Win32.MouseEventFlags.RightDown, 0, 0, 0, 0);
+            Win32.mouse_event((int)Win32.MouseEventFlags.RightUp, 0, 0, 0, 0);
+        }
+
+        public void Gesture_PokeRecognized(object sender, EventArgs e)
+        {
+            Win32.mouse_event((int)Win32.MouseEventFlags.LeftDown, 0, 0, 0, 0);
+            Win32.mouse_event((int)Win32.MouseEventFlags.LeftUp, 0, 0, 0, 0);
+            Win32.mouse_event((int)Win32.MouseEventFlags.LeftDown, 0, 0, 0, 0);
+            Win32.mouse_event((int)Win32.MouseEventFlags.LeftUp, 0, 0, 0, 0);
         }
 
         /// <summary>
@@ -666,6 +715,9 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
 
                             knockGesture.Update(body);
+                            knockPullGesture.Update(body);
+                            slapGesture.Update(body);
+                            pokeGesture.Update(body);
                             windowDragGesture.Update(body);
                             windowDragGestureFinish.Update(body);
                             mouseMoveGesture.Update(body);
