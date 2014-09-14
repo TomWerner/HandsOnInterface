@@ -12,7 +12,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics.Gestures
     {
         public static JointType dragHand;
         public static Point lastHandPoint;
+        public static float lastHandZ;
         public static bool resetOldHand;
+
+        public static JointType signalHand;
 
         public static bool checkForFling { get; set; }
     }
@@ -91,4 +94,5 @@ namespace Microsoft.Samples.Kinect.BodyBasics.Gestures
             return GesturePartResult.Failed;
         }
     }
+
 }
