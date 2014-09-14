@@ -271,7 +271,7 @@ namespace Microsoft.Samples.Kinect.HackISUName
                 GrammarBuilder snap = new GrammarBuilder { Culture = ri.Culture };
                 // Any window
                 snap.Append(new Choices("snap"));
-                snap.Append(new Choices("Genie", "Chrome", "Media Player", "Visual Studio", "Github", "Eclipse", "Word", "Notepad"));
+                snap.Append(new Choices("Spotify", "Genie", "Chrome", "Media Player", "Visual Studio", "Github", "Eclipse", "Word", "Notepad"));
                 snap.Append(new Choices("left", "right", "down", "up"));
                 var g = new Grammar(snap);
                 this.speechEngine.LoadGrammar(g);
@@ -287,14 +287,14 @@ namespace Microsoft.Samples.Kinect.HackISUName
 
                 GrammarBuilder grab1 = new GrammarBuilder { Culture = ri.Culture };
                 grab1.Append(new Choices("grab"));
-                grab1.Append(new Choices("Genie", "Chrome", "Media Player", "Visual Studio", "Github", "Eclipse", "Word", "Notepad"));
+                grab1.Append(new Choices("Spotify", "Genie", "Chrome", "Media Player", "Visual Studio", "Github", "Eclipse", "Word", "Notepad"));
                 var g1 = new Grammar(grab1);
                 this.speechEngine.LoadGrammar(g1);
 
 
                 GrammarBuilder drag1 = new GrammarBuilder { Culture = ri.Culture };
                 drag1.Append(new Choices("grab"));
-                drag1.Append(new Choices("Genie", "Chrome", "Media Player", "Visual Studio", "Github", "Eclipse", "Word", "Notepad"));
+                drag1.Append(new Choices("Spotify", "Genie", "Chrome", "Media Player", "Visual Studio", "Github", "Eclipse", "Word", "Notepad"));
                 var d1 = new Grammar(drag1);
                 this.speechEngine.LoadGrammar(d1);
 
@@ -564,11 +564,13 @@ namespace Microsoft.Samples.Kinect.HackISUName
         private void Gesture_ScrollUp(object sender, EventArgs e)
         {
             HandMouseState = HandMouseStates.SCROLL_UP;
+            Console.WriteLine("Trying to scroll");
         }
 
         private void Gesture_ScrollDown(object sender, EventArgs e)
         {
             HandMouseState = HandMouseStates.SCROLL_DOWN;
+            Console.WriteLine("Trying to scroll down");
         }
 
         private void Gesture_VolumeFinish(object sender, EventArgs e)
@@ -603,7 +605,7 @@ namespace Microsoft.Samples.Kinect.HackISUName
             //In case user is using closed left hand to drag windows; conflicting commands or accidental clicks when right hand is cursor
             if ((HandMouseState != HandMouseStates.WINDOW_DRAG || WindowDragData.dragHand != JointType.HandLeft) && HandMouseState != HandMouseStates.CURSOR)
             {
-                Win32.keybd_event(Win32.VK_MEDIA_PLAY_PAUSE, 0, 0, 0);
+                Win32.keybd_event(Win32.VK_VOLUME_MUTE, 0, 0, 0);
             }
         }
 
@@ -783,12 +785,26 @@ namespace Microsoft.Samples.Kinect.HackISUName
                     dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
 
                     int penIndex = 0;
-                    foreach (Body body in this.bodies)
+                    Body body = null;
+                    double zDist = double.MaxValue;
+                    foreach (Body b in this.bodies)
+                    {
+                        Console.WriteLine(b.Joints[JointType.Head].Position.Z + " : " + zDist);
+                        if (b.Joints[JointType.Head].Position.Z < zDist && b.Joints[JointType.Head].Position.Z != 0)
+                        {
+                            zDist = b.Joints[JointType.Head].Position.Z;
+                            body = b;
+                        }
+                    }
+                    Console.WriteLine("Body: " + body);
+                    
+                    if (body != null)
                     {
                         Pen drawPen = this.bodyColors[penIndex++];
 
                         if (body.IsTracked)
                         {
+                            Console.WriteLine(body.TrackingId);
                             this.DrawClippedEdges(body, dc);
 
                             IReadOnlyDictionary<JointType, Joint> joints = body.Joints;
@@ -916,7 +932,10 @@ namespace Microsoft.Samples.Kinect.HackISUName
                     int delay = (int)((1 - dist / maxSpeed) * 5) + 1;
 
                     if (scrollCounter % delay == 0)
+                    {
                         Win32.SendMessage(window, Win32.WM_VSCROLL, (IntPtr)Win32.SB_LINEUP, IntPtr.Zero);
+                        Console.WriteLine("Sending line up");
+                    }
 
                     break;
                 case HandMouseStates.SCROLL_DOWN:
@@ -928,7 +947,10 @@ namespace Microsoft.Samples.Kinect.HackISUName
                     int delay2 = (int)((1 - dist2 / maxSpeed2) * 5) + 1;
 
                     if (scrollCounter % delay2 == 0)
+                    {
                         Win32.SendMessage(window, Win32.WM_VSCROLL, (IntPtr)Win32.SB_LINEDOWN, IntPtr.Zero);
+                        Console.WriteLine("Sending line down");
+                    }
                     break;
                 case HandMouseStates.VOLUME_UP:
                     volumeCounter++;
@@ -990,9 +1012,12 @@ namespace Microsoft.Samples.Kinect.HackISUName
             dx *= multiplier;
             dy *= multiplier;
 
-            Point goal = new Point(physWindow.topLeft.X + dx, physWindow.topLeft.Y + dy);
-            physWindow.setPoint(goal);
-            physWindow.update();
+            if (physWindow != null)
+            {
+                Point goal = new Point(physWindow.topLeft.X + dx, physWindow.topLeft.Y + dy);
+                physWindow.setPoint(goal);
+                physWindow.update();
+            }
         }
 
         private void checkForFling(Body body, Point leftHand, Point rightHand)
