@@ -286,17 +286,36 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 var g1 = new Grammar(grab1);
                 this.speechEngine.LoadGrammar(g1);
 
+
+                GrammarBuilder drag1 = new GrammarBuilder { Culture = ri.Culture };
+                drag1.Append(new Choices("grab"));
+                drag1.Append(new Choices("Chrome", "Media Player", "Visual Studio", "Github", "Skype"));
+                var d1 = new Grammar(drag1);
+                this.speechEngine.LoadGrammar(d1);
+
                 GrammarBuilder grab2 = new GrammarBuilder { Culture = ri.Culture };
                 // Any window
                 grab2.Append(new Choices("grab"));
                 var g2 = new Grammar(grab2);
                 this.speechEngine.LoadGrammar(g2);
 
+                GrammarBuilder grab3 = new GrammarBuilder { Culture = ri.Culture };
+                // Any window
+                grab3.Append(new Choices("drag"));
+                var g3 = new Grammar(grab3);
+                this.speechEngine.LoadGrammar(g3);
+
                 GrammarBuilder dropit = new GrammarBuilder { Culture = ri.Culture };
                 // Any window
                 dropit.Append(new Choices("drop it"));
-                var g3 = new Grammar(dropit);
-                this.speechEngine.LoadGrammar(g3);
+                var drop = new Grammar(dropit);
+                this.speechEngine.LoadGrammar(drop);
+
+                GrammarBuilder mouse = new GrammarBuilder { Culture = ri.Culture };
+                // Any window
+                mouse.Append(new Choices("mouse mode"));
+                var mg = new Grammar(mouse);
+                this.speechEngine.LoadGrammar(mg);
 
 
 
@@ -1085,12 +1104,12 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                     }
                 }
 
-                if (e.Result.Words[e.Result.Words.Count - 1].Text.ToUpper() == "GRAB")
+                if (e.Result.Words[e.Result.Words.Count - 1].Text.ToUpper() == "GRAB" || e.Result.Words[e.Result.Words.Count - 1].Text.ToUpper() == "DRAG")
                 {
                     window = Win32.GetForegroundWindow();
                     Gesture_DragMove(null, null);
                 }
-                else if (e.Result.Text.ToUpper().Contains("GRAB"))
+                else if (e.Result.Text.ToUpper().Contains("GRAB") || e.Result.Text.ToUpper().Contains("DRAG"))
                 {
                     foreach (String key in processNameMap.Keys)
                     {
@@ -1106,6 +1125,11 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 if (e.Result.Text.ToUpper().Contains("DROP IT"))
                 {
                     HandMouseState = HandMouseStates.NONE;
+                }
+
+                if (e.Result.Text.ToUpper().Contains("MOUSE MODE"))
+                {
+                    HandMouseState = HandMouseStates.CURSOR;
                 }
             }
         }
