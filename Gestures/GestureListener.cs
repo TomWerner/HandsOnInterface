@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Samples.Kinect.BodyBasics
+namespace Microsoft.Samples.Kinect.HackISUName
 {
     /// <summary>
     /// Represents a single gesture segment which uses relative positioning of body parts to detect a gesture.
