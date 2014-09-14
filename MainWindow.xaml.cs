@@ -23,6 +23,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
     using Microsoft.Speech.Recognition;
     using Microsoft.Samples.Kinect.SpeechBasics;
     using System.Text;
+    using System.Threading;
 
     /// <summary>
     /// Interaction logic for MainWindow
@@ -153,7 +154,9 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         {
             NONE,
             CURSOR,
-            WINDOW_DRAG
+            WINDOW_DRAG,
+            SCROLL_UP,
+            SCROLL_DOWN
         }
         private HandMouseStates HandMouseState = HandMouseStates.NONE;
         
@@ -263,7 +266,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 GrammarBuilder snap = new GrammarBuilder { Culture = ri.Culture };
                 // Any window
                 snap.Append(new Choices("snap"));
-                snap.Append(new Choices("Chrome", "Media Player", "Visual Studio", "Github", "Skype"));
+                snap.Append(new Choices("Chrome", "Media Player", "Visual Studio", "Github", "Eclipse", "Word", "Notepad"));
                 snap.Append(new Choices("left", "right", "down", "up"));
                 var g = new Grammar(snap);
                 this.speechEngine.LoadGrammar(g);
@@ -279,14 +282,14 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
                 GrammarBuilder grab1 = new GrammarBuilder { Culture = ri.Culture };
                 grab1.Append(new Choices("grab"));
-                grab1.Append(new Choices("Chrome", "Media Player", "Visual Studio", "Github", "Skype"));
+                grab1.Append(new Choices("Chrome", "Media Player", "Visual Studio", "Github", "Eclipse", "Word", "Notepad"));
                 var g1 = new Grammar(grab1);
                 this.speechEngine.LoadGrammar(g1);
 
 
                 GrammarBuilder drag1 = new GrammarBuilder { Culture = ri.Culture };
                 drag1.Append(new Choices("grab"));
-                drag1.Append(new Choices("Chrome", "Media Player", "Visual Studio", "Github", "Skype"));
+                drag1.Append(new Choices("Chrome", "Media Player", "Visual Studio", "Github", "Eclipse", "Word", "Notepad"));
                 var d1 = new Grammar(drag1);
                 this.speechEngine.LoadGrammar(d1);
 
@@ -295,12 +298,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 grab2.Append(new Choices("grab"));
                 var g2 = new Grammar(grab2);
                 this.speechEngine.LoadGrammar(g2);
-
-                GrammarBuilder grab3 = new GrammarBuilder { Culture = ri.Culture };
-                // Any window
-                grab3.Append(new Choices("drag"));
-                var g3 = new Grammar(grab3);
-                this.speechEngine.LoadGrammar(g3);
 
                 GrammarBuilder dropit = new GrammarBuilder { Culture = ri.Culture };
                 // Any window
@@ -361,6 +358,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             WindowDragStart dragSeg1 = new WindowDragStart();
             WindowDragMove dragSeg2 = new WindowDragMove();
             MouseMoveStart mouseSeg1 = new MouseMoveStart();
+            ScrollUpStart scrollUpSeg1 = new ScrollUpStart();
+            ScrollDownStart scrollUpSeg2 = new ScrollDownStart();
+            ShowAllStart showSeg1 = new ShowAllStart();
+            HideAllStart showSeg2 = new HideAllStart();
             MouseMove mouseSeg2 = new MouseMove();
             FinishedGesture finished = new FinishedGesture();
             
@@ -379,6 +380,29 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 finished
             };
 
+
+            IGestureSegment[] scrollUp = new IGestureSegment[]
+            {
+                scrollUpSeg1,
+                scrollUpSeg2
+            };
+            IGestureSegment[] scrollDown = new IGestureSegment[]
+            {
+                scrollUpSeg2,
+                scrollUpSeg1
+            };
+
+            IGestureSegment[] bringUp = new IGestureSegment[]
+            {
+                showSeg1,
+                showSeg2
+            };
+            IGestureSegment[] bringDown = new IGestureSegment[]
+            {
+                showSeg2,
+                showSeg1
+            };
+
             windowDragGesture = new GestureListener(windowDrag);
             windowDragGesture.GestureRecognized += Gesture_DragMove;
 
@@ -390,6 +414,68 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             mouseMoveGestureFinish = new GestureListener(finishedSequence);
             mouseMoveGestureFinish.GestureRecognized += Gesture_MouseMoveFinish;
+
+            scrollUpGesture = new GestureListener(scrollUp);
+            scrollUpGesture.GestureRecognized += Gesture_ScrollUp;
+
+            scrollDownGesture = new GestureListener(scrollDown);
+            scrollDownGesture.GestureRecognized += Gesture_ScrollDown;
+
+            scrollGestureFinish = new GestureListener(finishedSequence);
+            scrollGestureFinish.GestureRecognized += Gesture_ScrollFinish;
+
+            showAllGesture = new GestureListener(bringUp);
+            showAllGesture.GestureRecognized += Gesture_ShowAll;
+
+            hideAllGesture = new GestureListener(bringDown);
+            hideAllGesture.GestureRecognized += Gesture_HideAll;
+        }
+
+        private void Gesture_HideAll(object sender, EventArgs e)
+        {
+            Process[] processlist = Process.GetProcesses();
+            for (int i = 0; i < processlist.Length; i++)
+            {
+                if (!String.IsNullOrEmpty(processlist[i].MainWindowTitle))
+                {
+                    window = Win32.GetForegroundWindow();
+                    Win32.ShowWindow(window, Win32.SW_MINIMIZE);
+                    Thread.Sleep(100);
+                }
+            }
+        }
+
+        private void Gesture_ShowAll(object sender, EventArgs e)
+        {
+            Process[] processlist = Process.GetProcesses();
+            for (int i = 0; i < processlist.Length; i++)
+            {
+                if (!String.IsNullOrEmpty(processlist[i].MainWindowTitle))
+                {
+                    window = processlist[i].MainWindowHandle;
+                    Win32.ShowWindow(window, Win32.SW_RESTORE);
+                    Thread.Sleep(100);
+                }
+            }
+        }
+
+        private void Gesture_ScrollFinish(object sender, EventArgs e)
+        {
+            if (HandMouseState == HandMouseStates.SCROLL_DOWN || HandMouseState == HandMouseStates.SCROLL_UP)
+            {
+                HandMouseState = HandMouseStates.NONE;
+                Win32.SendMessage(window, Win32.WM_VSCROLL, (IntPtr)Win32.SB_ENDSCROLL, IntPtr.Zero);
+            }
+        }
+
+        private void Gesture_ScrollUp(object sender, EventArgs e)
+        {
+            HandMouseState = HandMouseStates.SCROLL_UP;
+        }
+
+        private void Gesture_ScrollDown(object sender, EventArgs e)
+        {
+            HandMouseState = HandMouseStates.SCROLL_DOWN;
         }
 
         public void Gesture_DragMove(object sender, EventArgs e)
@@ -435,6 +521,11 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         private GestureListener mouseMoveGestureFinish;
         private Dictionary<string, IntPtr> processNameMap;
         private PhysWindow physWindow;
+        private GestureListener scrollUpGesture;
+        private GestureListener scrollGestureFinish;
+        private GestureListener scrollDownGesture;
+        private GestureListener showAllGesture;
+        private GestureListener hideAllGesture;
 
         /// <summary>
         /// Gets the bitmap to display
@@ -579,6 +670,11 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             windowDragGestureFinish.Update(body);
                             mouseMoveGesture.Update(body);
                             mouseMoveGestureFinish.Update(body);
+                            scrollUpGesture.Update(body);
+                            scrollDownGesture.Update(body);
+                            scrollGestureFinish.Update(body);
+                            showAllGesture.Update(body);
+                            hideAllGesture.Update(body);
 
                             handMouseBehavior(body, jointPoints[JointType.HandLeft], jointPoints[JointType.HandRight],jointZs[JointType.HandLeft],jointZs[JointType.HandRight]);
                         }
@@ -590,6 +686,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             }
         }
 
+        private int scrollCounter = 0;
         private void handMouseBehavior(Body body, Point leftHand, Point rightHand,float leftZ, float rightZ)
         {
             if (physWindow != null)
@@ -649,6 +746,29 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                     break;
                 case HandMouseStates.WINDOW_DRAG:
                     handleWindowDragging(body, leftHand, rightHand);
+                    break;
+                case HandMouseStates.SCROLL_UP:
+                    scrollCounter++;
+
+                    double maxSpeed = body.Joints[JointType.ShoulderRight].Position.Y - body.Joints[JointType.HipRight].Position.Y;
+                    double dist = Math.Min(maxSpeed, body.Joints[JointType.ShoulderRight].Position.Y - body.Joints[JointType.HandRight].Position.Y);
+
+                    int delay = (int)((1 - dist / maxSpeed) * 5) + 1;
+
+                    if (scrollCounter % delay == 0)
+                        Win32.SendMessage(window, Win32.WM_VSCROLL, (IntPtr)Win32.SB_LINEUP, IntPtr.Zero);
+
+                    break;
+                case HandMouseStates.SCROLL_DOWN:
+                    scrollCounter++;
+
+                    double maxSpeed2 = body.Joints[JointType.ShoulderRight].Position.Y - body.Joints[JointType.HipRight].Position.Y;
+                    double dist2 = Math.Min(maxSpeed2, body.Joints[JointType.ShoulderRight].Position.Y - body.Joints[JointType.HandRight].Position.Y);
+
+                    int delay2 = (int)((1 - dist2 / maxSpeed2) * 5) + 1;
+
+                    if (scrollCounter % delay2 == 0)
+                        Win32.SendMessage(window, Win32.WM_VSCROLL, (IntPtr)Win32.SB_LINEDOWN, IntPtr.Zero);
                     break;
                 default:
                     break;
@@ -959,50 +1079,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             if (e.Result.Confidence >= ConfidenceThreshold)
             {
-                //Console.WriteLine(e.Result.Text);
-                //if (e.Result.Text.Contains("front"))
-                //{
-                //    window = Win32.GetForegroundWindow();
-                //}
-                //if (e.Result.Text.Contains("hide") || e.Result.Text.Contains("min"))
-                //{
-                //    Win32.ShowWindow(window, Win32.SW_MINIMIZE);
-                //}
-                //if (e.Result.Text.Contains("max"))
-                //{
-                //    Win32.ShowWindow(window, Win32.SW_MAXIMIZE);
-                //}
-                //Rect workArea = System.Windows.SystemParameters.WorkArea;
-                //if (e.Result.Text.Contains("snap left"))
-                //{
-                //    Win32.SetWindowPos(window, new IntPtr(0), 0, 0, (int)workArea.Width / 2, (int)workArea.Height, Win32.SetWindowPosFlags.SWP_SHOWWINDOW);
-                //}
-                //if (e.Result.Text.Contains("snap right"))
-                //{
-                //    Win32.SetWindowPos(window, new IntPtr(0), (int)workArea.Width / 2, 0, (int)workArea.Width / 2, (int)workArea.Height, Win32.SetWindowPosFlags.SWP_SHOWWINDOW);
-                //}
-                //if (e.Result.Text.Contains("drag"))
-                //{
-                //    HandMouseState = HandMouseStates.WINDOW_DRAG;
-                //    WindowDragData.resetOldHand = true;
-                //    window = Win32.GetForegroundWindow();
-                //}
-                //if (e.Result.Text.Contains("pause music"))
-                //{
-                    
-                //}
-                //if (e.Result.Text.Contains("get windows"))
-                //{
-                //    processNameMap = new Dictionary<String, IntPtr>();
-                //    Process[] processlist = Process.GetProcesses();
-                //    foreach (Process process in processlist)
-                //    {
-                //        if (!String.IsNullOrEmpty(process.MainWindowTitle))
-                //        {
-                //            processNameMap.Add(process.MainWindowTitle, process.MainWindowHandle);
-                //        }
-                //    }
-                //}
                 Console.WriteLine(e.Result.Text);
                 bool snapOn = false;
                 if (e.Result.Text.ToUpper().Contains("SNAP"))
@@ -1027,6 +1103,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 }
                 if (snapOn)
                 {
+                    physWindow = null;
                     Rect workArea = System.Windows.SystemParameters.WorkArea;
                     if (e.Result.Text.ToUpper().Contains("LEFT"))
                     {
@@ -1077,7 +1154,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
                 if (e.Result.Text.ToUpper().Contains("MOUSE MODE"))
                 {
-                    HandMouseState = HandMouseStates.CURSOR;
+                    Gesture_MouseMove(null, null);
                 }
             }
         }

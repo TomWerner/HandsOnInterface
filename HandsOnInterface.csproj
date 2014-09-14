@@ -76,7 +76,10 @@
     </ApplicationDefinition>
     <Compile Include="Gestures\GesturePartResults.cs" />
     <Compile Include="Gestures\GestureListener.cs" />
+    <Compile Include="Gestures\KnockGestures.cs" />
     <Compile Include="Gestures\MouseGestures.cs" />
+    <Compile Include="Gestures\ScrollGestures.cs" />
+    <Compile Include="Gestures\SweepingGestures.cs" />
     <Compile Include="Gestures\WaveGestureSegment.cs" />
     <Compile Include="Gestures\WindowDragGestures.cs" />
     <Compile Include="KinectAudioStream.cs" />

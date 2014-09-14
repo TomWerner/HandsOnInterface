@@ -51,21 +51,21 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             
             topLeft.X += velocity.X;
             topLeft.Y += velocity.Y;
-            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.X) > .01 && velocity.X < 0; velocity.X += .01, i++);
-            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.X) > .01 && velocity.X > 0; velocity.X -= .01, i++);
-            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.Y) > .01 && velocity.Y < 0; velocity.Y += .01, i++);
-            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.Y) > .01 && velocity.Y > 0; velocity.Y -= .01, i++);
+            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.X) > slowdown && velocity.X < 0; velocity.X += slowdown, i++) ;
+            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.X) > slowdown && velocity.X > 0; velocity.X -= slowdown, i++) ;
+            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.Y) > slowdown && velocity.Y < 0; velocity.Y += slowdown, i++) ;
+            for (int i = 0; i < MAX_SPEED && Math.Abs(velocity.Y) > slowdown && velocity.Y > 0; velocity.Y -= slowdown, i++) ;
 
             double screenWidth = System.Windows.SystemParameters.PrimaryScreenWidth;
             double screenHeight = System.Windows.SystemParameters.PrimaryScreenHeight;
 
-            if (topLeft.X + width > screenWidth)
+            if (topLeft.X + width > screenWidth && velocity.X > 0)
                 velocity.X *= -1;
-            if (topLeft.X < 0)
+            if (topLeft.X < 0 && velocity.X < 0)
                 velocity.X *= -1;
-            if (topLeft.Y + width > screenHeight)
+            if (topLeft.Y + width > screenHeight && velocity.Y > 0)
                 velocity.Y *= -1;
-            if (topLeft.Y < 0)
+            if (topLeft.Y < 0 && velocity.Y < 0)
                 velocity.Y *= -1;
 
             Win32.SetWindowPos(windowPtr, new IntPtr(0), (int)topLeft.X, (int)topLeft.Y, -1, -1, Win32.SetWindowPosFlags.SWP_NOSIZE);
@@ -76,5 +76,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         private IntPtr windowPtr;
         private double width;
         private double height;
+        private double slowdown = .01;
     }
 }
