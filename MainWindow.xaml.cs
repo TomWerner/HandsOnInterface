@@ -585,19 +585,12 @@ namespace Microsoft.Samples.Kinect.HackISUName
 
         private void Gesture_VolumeUp(object sender, EventArgs e)
         {
-            // Avoids interfering with mouse use if user is using left hand as lasso
-            if (HandMouseState != HandMouseStates.CURSOR)
-            {
-                HandMouseState = HandMouseStates.VOLUME_UP;
-            }
+            HandMouseState = HandMouseStates.VOLUME_UP;
         }
 
         private void Gesture_VolumeDown(object sender, EventArgs e)
         {
-            if (HandMouseState != HandMouseStates.CURSOR)
-            {
-                HandMouseState = HandMouseStates.VOLUME_DOWN;
-            }
+            HandMouseState = HandMouseStates.VOLUME_DOWN;
         }
 
         private void Gesture_PausePlay(object sender, EventArgs e)
@@ -926,8 +919,8 @@ namespace Microsoft.Samples.Kinect.HackISUName
                 case HandMouseStates.SCROLL_UP:
                     scrollCounter++;
 
-                    double maxSpeed = body.Joints[JointType.ShoulderRight].Position.Y - body.Joints[JointType.HipRight].Position.Y;
-                    double dist = Math.Min(maxSpeed, body.Joints[JointType.ShoulderRight].Position.Y - body.Joints[JointType.HandRight].Position.Y);
+                    double maxSpeed = Math.Abs(body.Joints[JointType.ShoulderRight].Position.Y - body.Joints[JointType.HipRight].Position.Y);
+                    double dist = Math.Min(maxSpeed, Math.Abs(body.Joints[JointType.ShoulderRight].Position.Y - body.Joints[JointType.HandRight].Position.Y));
 
                     int delay = (int)((1 - dist / maxSpeed) * 5) + 1;
 
@@ -941,8 +934,8 @@ namespace Microsoft.Samples.Kinect.HackISUName
                 case HandMouseStates.SCROLL_DOWN:
                     scrollCounter++;
 
-                    double maxSpeed2 = body.Joints[JointType.ShoulderRight].Position.Y - body.Joints[JointType.HipRight].Position.Y;
-                    double dist2 = Math.Min(maxSpeed2, body.Joints[JointType.ShoulderRight].Position.Y - body.Joints[JointType.HandRight].Position.Y);
+                    double maxSpeed2 = Math.Abs(body.Joints[JointType.ShoulderRight].Position.Y - body.Joints[JointType.HipRight].Position.Y);
+                    double dist2 = Math.Min(maxSpeed2, Math.Abs(body.Joints[JointType.ShoulderRight].Position.Y - body.Joints[JointType.HandRight].Position.Y));
 
                     int delay2 = (int)((1 - dist2 / maxSpeed2) * 5) + 1;
 
@@ -955,10 +948,10 @@ namespace Microsoft.Samples.Kinect.HackISUName
                 case HandMouseStates.VOLUME_UP:
                     volumeCounter++;
 
-                    double maxSpeed3 = body.Joints[JointType.ShoulderLeft].Position.Y - body.Joints[JointType.HipLeft].Position.Y;
-                    double dist3 = Math.Min(maxSpeed3, body.Joints[JointType.ShoulderLeft].Position.Y - body.Joints[JointType.HandLeft].Position.Y);
+                    double maxSpeed3 = Math.Abs(body.Joints[JointType.ShoulderLeft].Position.Y - body.Joints[JointType.HipLeft].Position.Y);
+                    double dist3 = Math.Min(maxSpeed3, Math.Abs(body.Joints[JointType.ShoulderLeft].Position.Y - body.Joints[JointType.HandLeft].Position.Y));
 
-                    int delay3 = (int)((1 - dist3 / maxSpeed3) * 8) + 1;
+                    int delay3 = (int)((1 - dist3 / maxSpeed3) * 4) + 1;
 
                     if (scrollCounter % delay3 == 0)
                     {
@@ -968,8 +961,8 @@ namespace Microsoft.Samples.Kinect.HackISUName
                 case HandMouseStates.VOLUME_DOWN:
                     volumeCounter++;
 
-                    double maxSpeed4 = body.Joints[JointType.ShoulderLeft].Position.Y - body.Joints[JointType.HipLeft].Position.Y;
-                    double dist4 = Math.Min(maxSpeed4, body.Joints[JointType.ShoulderLeft].Position.Y - body.Joints[JointType.HandLeft].Position.Y);
+                    double maxSpeed4 = Math.Abs(body.Joints[JointType.ShoulderLeft].Position.Y - body.Joints[JointType.HipLeft].Position.Y);
+                    double dist4 = Math.Min(maxSpeed4, Math.Abs(body.Joints[JointType.ShoulderLeft].Position.Y - body.Joints[JointType.HandLeft].Position.Y));
 
                     int delay4 = (int)((1 - dist4 / maxSpeed4) * 8) + 1;
 
